@@ -5,7 +5,43 @@ from main.models import News
 from django.http import HttpResponse
 from django.core import serializers
 
-# Create your views here.
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+
+def register(request):
+    form = UserCreationForm()
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your acccount has been successfully created!')
+            return redirect('main:login')
+
+    context = {'form': form}
+    return render(request, 'register.html', context)
+
+def login_user(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect('main:show_main')
+    else:
+        form = AuthenticationForm(request)
+
+    context = {'form': form}
+    return render(request, 'login.html', context)
+
+def logout_user(request):
+    logout(request)
+    return redirect('main:show_main')
+
+
+@login_required(login_url='main:login')
 def show_main(request):
     news_list = News.objects.all()
 
@@ -29,6 +65,7 @@ def create_news(request):
 
     return render(request, 'create_news.html', context)
 
+@login_required(login_url='main:login')
 def show_news(request, id):
     news = get_object_or_404(News, pk=id)
     news.increment_views()
